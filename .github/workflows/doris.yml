@@ -1,34 +1,51 @@
-name: Build and Push Docker Image
+name: Build and Package Doris
 
 on:
-  # schedule:
-  #   - cron: '0 0 * * 1'  # 每周一零点（UTC 时间）运行
   workflow_dispatch:  # 手动触发
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-16.04
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Set up Docker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+          sudo systemctl start docker
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential openjdk-8-jdk maven cmake byacc flex automake libtool-bin \
+            bison binutils-dev libiberty-dev zip unzip libncurses5-dev curl git ninja-build python \
+            autoconf automake libtool autopoint
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa -y
+          sudo apt-get update
+          sudo apt-get install -y gcc-10 g++-10
 
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Download and Extract Source Code
+        run: |
+          curl -L https://github.com/apache/doris/archive/refs/tags/2.1.7-rc03.tar.gz -o doris.tar.gz
+          mkdir doris_build
+          tar -xzvf doris.tar.gz -C doris_build --strip-components=1
 
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v2
-      with:
-        context: .
-        file: dockerfile/doris/Dockerfile  # 请修改为Dockerfile的路径
-        push: true
-        tags: rainful/doris:latest  # 替换为目标仓库和标签
+      - name: Run Build Script
+        run: |
+          cd doris_build
+          sh build.sh
 
-    - name: Logout from Docker Hub
-      run: docker logout
+      - name: Build Docker Image
+        run: |
+          docker build -t rainful/doris_image:2.1.7-rc03 .
+
+      - name: Log in to DockerHub
+        env:
+          DOCKERHUB_USERNAME: rainful
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+        run: |
+          echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+      - name: Push Docker Image
+        run: |
+          docker push rainful/doris:2.1.7
