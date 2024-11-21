@@ -35,9 +35,14 @@ jobs:
           cd doris_build
           sh build.sh
 
-      - name: Build Docker Image
-        run: |
-          docker build -t rainful/doris_image:2.1.7-rc03 .
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: dockerfile/doris/Dockerfile  # 请修改为Dockerfile的路径
+          push: true
+          tags: rainful/doris:2.1.7  # 替换为目标仓库和标签
+  
 
       - name: Log in to DockerHub
         env:
