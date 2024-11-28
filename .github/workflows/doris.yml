@@ -12,7 +12,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential openjdk-8-jdk maven cmake byacc flex automake libtool-bin \
-            bison binutils-dev libiberty-dev zip unzip libncurses5-dev curl git ninja-build python \
+            bison binutils-dev libiberty-dev zip unzip libncurses5-dev curl git ninja-build python-is-python3 \
             autoconf automake libtool autopoint
           sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa -y
           sudo apt-get update
